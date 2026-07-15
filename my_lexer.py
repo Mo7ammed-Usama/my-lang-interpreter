@@ -1,8 +1,8 @@
 from my_token import *
-import string as _string
+from string import ascii_letters, digits
 
-_ALPHA = frozenset(_string.ascii_letters)
-_DIGITS = frozenset(_string.digits)
+_ALPHA = frozenset(ascii_letters)
+_DIGITS = frozenset(digits)
 _WHITESPACES = frozenset(" \t\v\n\r")
 
 class Lexer:
@@ -21,11 +21,23 @@ class Lexer:
         while cur_index < source_len:
             cur_char = source[cur_index]
 
-            if cur_char.isspace():
+            if source[cur_index] in _WHITESPACES:
                 if cur_char == "\n": cur_line += 1
                 cur_index += 1
                 continue
 
+            if cur_char in _ALPHA:
+                starting_index = cur_index
+                cur_index = self.__advance_while_in(source, source_len, _ALPHA, cur_index)
+
+                cur_char = source[starting_index: cur_index]
+                cur_type = types_dict.get(cur_char)
+
+                if cur_type is None:
+                    if cur_char in ("True", "False"):
+                        cur_type = TokenType.BOOLEAN
+                    else:
+                        cur_type = TokenType.IDENTIFIER
 
             elif cur_char in ("\'", "\""):
                 cur_index += 1
@@ -43,17 +55,16 @@ class Lexer:
                 cur_type = TokenType.STRING
                 cur_index += 1
 
-
             elif cur_char in _DIGITS:
                 starting_index = cur_index
                 decimal_point_count = 0
 
-                while cur_index < source_len and source[cur_index] in _DIGITS:
-                    cur_index += 1
+                cur_index = self.__advance_while_in(source, source_len, _DIGITS, cur_index)
 
-                    if cur_index < source_len and source[cur_index] == ".":
-                        cur_index += 1
-                        decimal_point_count += 1
+                if cur_index < source_len and source[cur_index] == ".":
+                    cur_index += 1
+                    decimal_point_count += 1
+                    cur_index = self.__advance_while_in(source, source_len, _DIGITS, cur_index)
 
                 if decimal_point_count > 1:
                     raise RuntimeError(f"Expected 1 decimal point '.' in the Double Number, got ({decimal_point_count})")
@@ -64,31 +75,27 @@ class Lexer:
                 cur_char = source[starting_index: cur_index]
                 cur_type = TokenType.INTEGER if decimal_point_count == 0 else TokenType.DOUBLE
 
-
-            elif cur_char in _ALPHA:
-                starting_index = cur_index
-                while cur_index < source_len and source[cur_index] in _ALPHA:
-                    cur_index += 1
-
-                cur_char = source[starting_index: cur_index]
-                cur_type = types_dict.get(cur_char)
-
-                if cur_type is None:
-                    if cur_char in ("True", "False"):
-                        cur_type = TokenType.BOOLEAN
-                    else:
-                        cur_type = TokenType.IDENTIFIER
-
-
             else:
+                if cur_char in ("<", ">", "!", "=") and source[cur_index + 1] == "=":
+                    cur_index += 1
+                    cur_char = cur_char + source[cur_index]
+
                 cur_type = types_dict.get(cur_char)
                 if cur_type is None:
                     raise RuntimeError(f"Unexpected Token: '{cur_char}', At: line ({cur_line}), index ({cur_index})")
                 cur_char = None
-                cur_index += 1
 
+                cur_index += 1
 
             tokens.append(Token(cur_type, cur_char))
 
         tokens.append(Token(TokenType.EOF))
         return tuple(tokens)
+
+    @staticmethod
+    def __advance_while_in(source: str, source_len: int, char_set: frozenset[str], cur_index: int) -> int:
+        while cur_index < source_len and source[cur_index] in char_set:
+            cur_index += 1
+
+        return cur_index
+
