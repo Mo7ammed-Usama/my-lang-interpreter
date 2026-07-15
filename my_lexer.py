@@ -1,5 +1,9 @@
 from my_token import *
+import string as _string
 
+_ALPHA = frozenset(_string.ascii_letters)
+_DIGITS = frozenset(_string.digits)
+_WHITESPACES = frozenset(" \t\v\n\r")
 
 class Lexer:
     def __init__(self, source: str):
@@ -12,78 +16,79 @@ class Lexer:
         cur_line = 1
 
         tokens = []
+        types_dict = TokenType._value2member_map_
 
         while cur_index < source_len:
             cur_char = source[cur_index]
-            cur_type = None
 
             if cur_char.isspace():
                 if cur_char == "\n": cur_line += 1
                 cur_index += 1
                 continue
 
-            if cur_char in ("\'", "\""):
+
+            elif cur_char in ("\'", "\""):
                 cur_index += 1
                 starting_index = cur_index
-                while cur_index <= source_len and source[cur_index] != cur_char:
-                    cur_index += 1
 
-                    if cur_index >= source_len:
-                        raise RuntimeError(f"Expected {cur_char} at the end of the string")
+                cur_index = source.find(cur_char, starting_index)
+                if cur_index == -1:
+                    raise RuntimeError(f"Expected: ({cur_char}) at the end of the string")
 
-                    if source[cur_index] == "\n":
-                        raise RuntimeError("String should be written in one line")
+                cur_char = source[starting_index : cur_index]
 
-                string = source[starting_index : cur_index]
-                tokens.append(Token(TokenType.STRING, string))
+                if "\n" in cur_char:
+                    raise RuntimeError("String should be written in one line")
+
+                cur_type = TokenType.STRING
                 cur_index += 1
-                continue
 
-            if cur_char.isdecimal():
+
+            elif cur_char in _DIGITS:
                 starting_index = cur_index
                 decimal_point_count = 0
 
-                while cur_index < source_len and source[cur_index].isdecimal():
+                while cur_index < source_len and source[cur_index] in _DIGITS:
                     cur_index += 1
-                    if source[cur_index] == "." and source[cur_index + 1].isdecimal():
+
+                    if cur_index < source_len and source[cur_index] == ".":
                         cur_index += 1
                         decimal_point_count += 1
 
                 if decimal_point_count > 1:
-                    raise RuntimeError(f"Expected 1 decimal point '.' in the Double Number, got {decimal_point_count}")
+                    raise RuntimeError(f"Expected 1 decimal point '.' in the Double Number, got ({decimal_point_count})")
 
-                cur_type = TokenType.DOUBLE if decimal_point_count == 1 else TokenType.INTEGER
-                number = source[starting_index: cur_index]
+                elif source[cur_index - 1] == ".":
+                    raise RuntimeError(f"Expected a number after the decimal point '.', At: line ({cur_line}), index ({cur_index})")
 
-                tokens.append(Token(cur_type, number))
-                continue
+                cur_char = source[starting_index: cur_index]
+                cur_type = TokenType.INTEGER if decimal_point_count == 0 else TokenType.DOUBLE
 
-            if cur_char.isalpha():
+
+            elif cur_char in _ALPHA:
                 starting_index = cur_index
-                while cur_index < source_len and source[cur_index].isalpha():
+                while cur_index < source_len and source[cur_index] in _ALPHA:
                     cur_index += 1
 
-                string = source[starting_index: cur_index]
-                cur_type = TokenType._value2member_map_.get(string)
+                cur_char = source[starting_index: cur_index]
+                cur_type = types_dict.get(cur_char)
 
                 if cur_type is None:
-                    if string in ("True", "False"):
+                    if cur_char in ("True", "False"):
                         cur_type = TokenType.BOOLEAN
                     else:
                         cur_type = TokenType.IDENTIFIER
 
-                tokens.append(Token(cur_type, string))
-                continue
 
-            cur_type = TokenType._value2member_map_.get(cur_char)
+            else:
+                cur_type = types_dict.get(cur_char)
+                if cur_type is None:
+                    raise RuntimeError(f"Unexpected Token: '{cur_char}', At: line ({cur_line}), index ({cur_index})")
+                cur_char = None
+                cur_index += 1
 
-            if cur_type is None:
-                raise RuntimeError(f"Unexpected Token: ({cur_char}), At: line ({cur_line}), index ({cur_index})")
 
             tokens.append(Token(cur_type, cur_char))
-            cur_index += 1
-
 
         tokens.append(Token(TokenType.EOF))
         return tuple(tokens)
-

@@ -46,5 +46,5 @@ class TokenType(Enum):
 @dataclass(slots=True)
 class Token:
     type: TokenType
-    literal_value: str = ""
+    literal_value: str | None = None
 
