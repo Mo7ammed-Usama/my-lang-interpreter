@@ -6,20 +6,37 @@ class TokenType(Enum):
     CLOSE_PARENTHESES = ")"
     OPEN_BRACE = "{"
     CLOSE_BRACE = "}"
+    OPEN_BRACKET = "["
+    CLOSE_BRACKET = "]"
 
-    STAR = "*"
-    SLASH = "/"
+
+    MULTIPLY = "*"
+    DIVIDE = "/"
     PLUS = "+"
     MINUS = "-"
-    EQUAL = "="
-    DOUBLE_EQUAL = "=="
+    EXPONENT = "**"
+    FLOOR_DIVIDE = "//"
+
+    EQUAL = "=="
     NOT_EQUAL = "!="
-    GREATER_THAN = ">"
-    GREATER_THAN_EQUAL = ">="
     LESS_THAN = "<"
+    GREATER_THAN = ">"
     LESS_THAN_EQUAL = "<="
+    GREATER_THAN_EQUAL = ">="
+
+    ASSIGN = "="
+    PLUS_PLUS = "++"
+    MINUS_MINUS = "--"
+    PLUS_EQUAL = "+="
+    MINUS_EQUAL = "-="
+    MULTIPLY_EQUAL = "*="
+    DIVIDE_EQUAL = "/="
+    EXPONENT_EQUAL = "**="
+    FLOOR_DIVIDE_EQUAL = "//="
+
     SEMI_COLON = ";"
     COMMA = ","
+
 
     VAR = "var"
     IF = "if"
@@ -29,10 +46,9 @@ class TokenType(Enum):
     CONTINUE = "continue"
     FUNC = "func"
     RETURN = "return"
-    NULL = "Null"
 
+    NULL = "Null"
     IDENTIFIER = "IDENTIFIER"
-    CHAR = "CHAR"
     STRING = "STRING"
     BOOLEAN = "BOOLEAN"
     INTEGER = "INTEGER"
@@ -46,5 +62,29 @@ class TokenType(Enum):
 @dataclass(slots=True)
 class Token:
     type: TokenType
-    literal_value: str | None = None
+    literal_value: str = None
 
+
+ASSIGNING_TOKENS = (
+    TokenType.ASSIGN,
+    TokenType.PLUS_PLUS,
+    TokenType.MINUS_MINUS,
+    TokenType.PLUS_EQUAL,
+    TokenType.MINUS_EQUAL,
+    TokenType.MULTIPLY_EQUAL,
+    TokenType.DIVIDE_EQUAL,
+    TokenType.EXPONENT_EQUAL,
+    TokenType.FLOOR_DIVIDE_EQUAL
+)
+
+ASSIGNING_TOKENS_TO_BASIC = {
+    TokenType.ASSIGN             : TokenType.ASSIGN,
+    TokenType.PLUS_PLUS          : TokenType.PLUS,
+    TokenType.MINUS_MINUS        : TokenType.MINUS,
+    TokenType.PLUS_EQUAL         : TokenType.PLUS,
+    TokenType.MINUS_EQUAL        : TokenType.MINUS,
+    TokenType.MULTIPLY_EQUAL     : TokenType.MULTIPLY,
+    TokenType.DIVIDE_EQUAL       : TokenType.DIVIDE,
+    TokenType.EXPONENT_EQUAL     : TokenType.EXPONENT,
+    TokenType.FLOOR_DIVIDE_EQUAL : TokenType.FLOOR_DIVIDE
+}

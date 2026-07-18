@@ -19,11 +19,21 @@ class Lexer:
         types_dict = TokenType._value2member_map_
 
         while cur_index < source_len:
-            cur_char = source[cur_index]
+            cur_char = "/*" if source[cur_index : cur_index + 2] == "/*" else source[cur_index]
 
-            if source[cur_index] in _WHITESPACES:
+            if cur_char in _WHITESPACES:
                 if cur_char == "\n": cur_line += 1
                 cur_index += 1
+                continue
+
+            if cur_char == "/*":
+                while cur_index < source_len and (source[cur_index : cur_index + 2] != "*/" or source[cur_index] in _WHITESPACES):
+                    if cur_char == "\n": cur_line += 1
+                    cur_index += 1
+
+                if source[cur_index : cur_index + 2] != "*/":
+                    raise RuntimeError("Expected '*/' after '/*' to close the comment")
+                cur_index += 2
                 continue
 
             if cur_char in _ALPHA:
@@ -76,7 +86,11 @@ class Lexer:
                 cur_type = TokenType.INTEGER if decimal_point_count == 0 else TokenType.DOUBLE
 
             else:
-                if cur_char in ("<", ">", "!", "=") and source[cur_index + 1] == "=":
+                if cur_char in ("+", "-", "*", "/") and source[cur_index + 1] == cur_char: # "++" | "--" | "**" | "//"
+                    cur_index += 1
+                    cur_char = cur_char + source[cur_index]
+
+                if cur_char in ("=", "!", "<", ">", "+", "-", "*", "/", "**", "//") and source[cur_index + 1] == "=": # "==" | "!=" | "<=" | ">=" | "+=" | "-=" | "*=" | "/=" | "**=" | "//="
                     cur_index += 1
                     cur_char = cur_char + source[cur_index]
 
@@ -93,9 +107,8 @@ class Lexer:
         return tuple(tokens)
 
     @staticmethod
-    def __advance_while_in(source: str, source_len: int, char_set: frozenset[str], cur_index: int) -> int:
+    def __advance_while_in(source: str, source_len: int, char_set: frozenset[str] | str, cur_index: int) -> int:
         while cur_index < source_len and source[cur_index] in char_set:
             cur_index += 1
-
         return cur_index
 
