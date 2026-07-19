@@ -1,3 +1,5 @@
+from my_compiler import Compiler
+from my_instruction import OpCode
 from my_lexer import *
 
 from my_parser import Parser
@@ -7,9 +9,10 @@ var x = 1555.5;
 var str = "hello";
 var test = 55 > 0;
 var testt = 55 <= 0;
+var y = 66;
 
-func add(a, b) { 
-return a + b;
+func add(a, b) {
+a + b;
 }
 
 var sum = add(x, 3);
@@ -17,17 +20,16 @@ var sum = add(x, 3);
 x = 5;
 x ++;
 y --;
-x **= 8;
-y //= 9;
-
+x *= 8;
+y ^= 5;
 
 
 if (9 >= x) {
     if (x != 4) {
-        y += 7;
+        y += 7; /* A comment */
         x --;
     }
-    
+
     if (y == 7) {
         y --;
     }
@@ -39,6 +41,25 @@ while (x >= 8) {
         continue;
     }
 }
+
+func mul(a, b) {
+    var result = 0;
+    x ++;
+    //x -= 1;
+    while (+-(-+(-b)) >= 0) {
+        result += a;
+        b --;
+    }
+    if (b != 0) {
+        return "Unexpected error";
+    }
+    return result;
+}
+// A comment
+var long = """
+hello, how are you""";
+
+var opp = -(-add(2, 3));
 '''
 
 print(source + "\n")
@@ -51,12 +72,23 @@ for index, token in enumerate(tokens):
 ast = Parser(tokens, True).parse()
 print(*ast, sep="\n")
 
+compiler = Compiler(ast)
+instructions = compiler.compile()
+for index, instruction in enumerate(instructions):
+    end = "\n\n" if instruction.op_code in (OpCode.RETURN,) else "\n"
+    print(f"[{index}] {instruction}", end=end)
+
+print("\n" + compiler.get_info())
 
 
-def hello():
-    return "hello"
+
+
 
 def hehe(sound, time, duration):
     print(f"{sound}, {time}, {duration}")
 
-hehe(hello(), "9", "0.5")
+def hello():
+    return "hello"
+
+x = 55
+

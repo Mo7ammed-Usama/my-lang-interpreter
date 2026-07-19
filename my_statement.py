@@ -1,6 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 from my_expr import Expr
+from my_token import TokenType
 
 
 class Stmt(ABC):
@@ -63,7 +64,7 @@ class ContinueStmt(Stmt):
 @dataclass(slots=True)
 class FuncDeclaration(Stmt):
     name: str
-    parameters: tuple[str, ...]
+    param_names: tuple[str, ...]
     block: tuple[Stmt, ...]
 
 

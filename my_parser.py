@@ -73,6 +73,7 @@ class Parser:
         self.__cur_index = 0
 
         self.__is_loop_block = False
+        self.__is_function_block = False
 
     # ========================================= Parsing Methods ==========================================
     # ============== Main Parsing Method ===============
@@ -104,6 +105,13 @@ class Parser:
             return self.__while_statement()
         if self.__match(TokenType.FOR):
             return self.__for_statement()
+        if self.__match(TokenType.BREAK):
+            return self.__break_statement()
+        if self.__match(TokenType.CONTINUE):
+            return self.__continue_statement()
+
+        if self.__match(TokenType.RETURN):
+            return self.__return_statement()
 
         return self.__expr_statement()
 
@@ -114,26 +122,31 @@ class Parser:
 
     # ======= Function Statements =======
     def __func_declaration(self) -> Stmt:
+        self.__is_function_block = True
+
         name = self.__consume(TokenType.IDENTIFIER, "Expected an Identifier (name) to the Function").literal_value
 
         self.__consume(TokenType.OPEN_PARENTHESES, "Expected ( '(' Open Parentheses ) after the function Identifier")
-        parameters = []
+        parameters_names = []
         while not self.__is_at_end() and not self.__match(TokenType.CLOSE_PARENTHESES):
-            if len(parameters) > 0:
+            if len(parameters_names) > 0:
                 self.__consume(TokenType.COMMA, f"Expected ( ',' Comma ) after '{self.__peek()}'")
-            parameters.append(self.__advance().literal_value)
+            parameters_names.append(self.__advance().literal_value)
 
         self.__consume(TokenType.OPEN_BRACE, "Expected ( '{' Open Brace ) to assign function block")
         block = []
-        while not self.__is_at_end() and not self.__match(TokenType.RETURN):
+        while not self.__is_at_end() and not self.__match(TokenType.CLOSE_BRACE):
             block.append(self.__parse_statement())
 
-        block.append(self.__return_statement())
-        self.__consume(TokenType.CLOSE_BRACE,  "Expected ( '}' Close Brace ) at the end of the function block")
+        if ReturnStmt not in block:
+            block.append(ReturnStmt(Null(None)))
 
-        return FuncDeclaration(name, tuple(parameters), tuple(block))
+        self.__is_function_block = False
+        return FuncDeclaration(name, tuple(parameters_names), tuple(block))
 
     def __return_statement(self) -> Stmt:
+        if not self.__is_function_block:
+            raise RuntimeError("Return Statement should be included inside a Function Declaration")
         expression = self.__expression()
         self.__consume(TokenType.SEMI_COLON, "Expected ( ';' Semi Colon ) after the Statement")
         return ReturnStmt(expression)
@@ -198,13 +211,6 @@ class Parser:
         self.__consume(TokenType.OPEN_BRACE, "Expected ( '{' Open Brace ) to assign While Statement block")
         block = []
         while not self.__is_at_end() and not self.__check(TokenType.CLOSE_BRACE):
-            if self.__match(TokenType.BREAK):
-                block.append(self.__break_statement())
-                continue
-            if self.__match(TokenType.CONTINUE):
-                block.append(self.__continue_statement())
-                continue
-
             block.append(self.__parse_statement())
         self.__consume(TokenType.CLOSE_BRACE, "Expected ( '{' Close Brace ) to assign While Statement block")
 
@@ -215,10 +221,14 @@ class Parser:
         pass
 
     def __break_statement(self) -> Stmt:
+        if not self.__is_loop_block:
+            raise RuntimeError("Break Statement should be included inside a While or For loop")
         self.__consume(TokenType.SEMI_COLON, "Expected ( ';' Semi Colon ) after the Statement")
         return BreakStmt()
 
     def __continue_statement(self) -> Stmt:
+        if not self.__is_loop_block:
+            raise RuntimeError("Continue Statement should be included inside a While or For loop")
         self.__consume(TokenType.SEMI_COLON, "Expected ( ';' Semi Colon ) after the Statement")
         return ContinueStmt()
 
@@ -235,39 +245,63 @@ class Parser:
         return working_expr
 
     def __comparison(self) -> Expr:
-        working_expr = self.__parse_expression()
+        working_expr = self.__term()
 
         if self.__match(TokenType.LESS_THAN, TokenType.GREATER_THAN, TokenType.LESS_THAN_EQUAL, TokenType.GREATER_THAN_EQUAL):
             operator = self.__peek(-1)
-            parsed_expression = self.__parse_expression()
+            parsed_expression = self.__term()
 
             working_expr = Binary(working_expr, operator, parsed_expression)
 
         return working_expr
 
-    def __parse_expression(self) -> Expr:
-        working_expr = self.__parse_term()
+    def __term(self) -> Expr:
+        working_expr = self.__factor()
 
         if self.__match(TokenType.PLUS, TokenType.MINUS):
             operator = self.__peek(-1)
-            parsed_expression = self.__parse_term()
+            parsed_expression = self.__factor()
 
             working_expr = Binary(working_expr, operator, parsed_expression)
 
         return working_expr
 
-    def __parse_term(self) -> Expr:
-        working_expr = self.__parse_factor()
+    def __factor(self) -> Expr:
+        working_expr = self.__exponent()
 
         if self.__match(TokenType.MULTIPLY, TokenType.DIVIDE):
             operator = self.__peek(-1)
-            parsed_term = self.__parse_factor()
+            parsed_term = self.__exponent()
 
             working_expr = Binary(working_expr, operator, parsed_term)
 
         return working_expr
 
-    def __parse_factor(self) -> Expr:
+    def __exponent(self) -> Expr:
+        working_expr = self.__unary()
+
+        if self.__match(TokenType.EXPONENT):
+            operator = self.__peek(-1)
+            parsed_expression = self.__unary()
+
+            working_expr = Binary(working_expr, operator, parsed_expression)
+
+        return working_expr
+
+    def __unary(self) -> Expr:
+        if self.__match(TokenType.MINUS):
+            operator = self.__peek(-1)
+            working_expr = self.__unary()
+            return Unary(working_expr, operator)
+
+        if self.__match(TokenType.PLUS):
+            working_expr = self.__unary()
+            return working_expr
+
+        working_expr = self.__primary()
+        return working_expr
+
+    def __primary(self) -> Expr:
         token = self.__peek()
 
         # '(' Expression ')'
