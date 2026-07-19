@@ -63,7 +63,7 @@ class ContinueStmt(Stmt):
 @dataclass(slots=True)
 class FuncDeclaration(Stmt):
     name: str
-    parameters: tuple[str, ...]
+    param_names: tuple[str, ...]
     block: tuple[Stmt, ...]
 
 

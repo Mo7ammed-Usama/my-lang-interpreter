@@ -14,8 +14,7 @@ class TokenType(Enum):
     DIVIDE = "/"
     PLUS = "+"
     MINUS = "-"
-    EXPONENT = "**"
-    FLOOR_DIVIDE = "//"
+    EXPONENT = "^"
 
     EQUAL = "=="
     NOT_EQUAL = "!="
@@ -31,8 +30,7 @@ class TokenType(Enum):
     MINUS_EQUAL = "-="
     MULTIPLY_EQUAL = "*="
     DIVIDE_EQUAL = "/="
-    EXPONENT_EQUAL = "**="
-    FLOOR_DIVIDE_EQUAL = "//="
+    EXPONENT_EQUAL = "^="
 
     SEMI_COLON = ";"
     COMMA = ","
@@ -73,8 +71,7 @@ ASSIGNING_TOKENS = (
     TokenType.MINUS_EQUAL,
     TokenType.MULTIPLY_EQUAL,
     TokenType.DIVIDE_EQUAL,
-    TokenType.EXPONENT_EQUAL,
-    TokenType.FLOOR_DIVIDE_EQUAL
+    TokenType.EXPONENT_EQUAL
 )
 
 ASSIGNING_TOKENS_TO_BASIC = {
@@ -85,6 +82,13 @@ ASSIGNING_TOKENS_TO_BASIC = {
     TokenType.MINUS_EQUAL        : TokenType.MINUS,
     TokenType.MULTIPLY_EQUAL     : TokenType.MULTIPLY,
     TokenType.DIVIDE_EQUAL       : TokenType.DIVIDE,
-    TokenType.EXPONENT_EQUAL     : TokenType.EXPONENT,
-    TokenType.FLOOR_DIVIDE_EQUAL : TokenType.FLOOR_DIVIDE
+    TokenType.EXPONENT_EQUAL     : TokenType.EXPONENT
 }
+
+ARITHMETIC_TOKENS = (
+    TokenType.PLUS,
+    TokenType.MINUS,
+    TokenType.MULTIPLY,
+    TokenType.DIVIDE,
+    TokenType.EXPONENT
+)

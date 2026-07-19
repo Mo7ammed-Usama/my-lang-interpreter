@@ -16,11 +16,19 @@ class Binary(Expr):
 # ====================================================================================================
 
 
+# ======================================== Binary Expression =========================================
+@dataclass(slots=True)
+class Unary(Expr):
+    operand: Expr
+    operator: Token
+# ====================================================================================================
+
+
 # =================================== Function Calling Expression ====================================
 @dataclass(slots=True)
 class FuncCall(Expr):
     name: str
-    args: tuple[str, ...]
+    args: tuple[Expr, ...]
 # ====================================================================================================
 
 
@@ -32,8 +40,9 @@ class VarReference(Expr):
 
 
 # ======================================= Literal Expressions ========================================
-class Literal(Expr, ABC):
-    pass
+@dataclass
+class Literal(Expr):
+    value: object
 
 @dataclass(slots=True)
 class Integer(Literal):
@@ -60,3 +69,10 @@ class Null(Literal):
 TOKEN_TO_EXPRESSION = {
     None
 }
+
+
+
+
+
+
+

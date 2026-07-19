@@ -19,22 +19,30 @@ class Lexer:
         types_dict = TokenType._value2member_map_
 
         while cur_index < source_len:
-            cur_char = "/*" if source[cur_index : cur_index + 2] == "/*" else source[cur_index]
+            cur_char = source[cur_index]
 
             if cur_char in _WHITESPACES:
                 if cur_char == "\n": cur_line += 1
                 cur_index += 1
                 continue
 
-            if cur_char == "/*":
-                while cur_index < source_len and (source[cur_index : cur_index + 2] != "*/" or source[cur_index] in _WHITESPACES):
-                    if cur_char == "\n": cur_line += 1
-                    cur_index += 1
+            if cur_char == "/":
+                next_char = source[cur_index + 1]
 
-                if source[cur_index : cur_index + 2] != "*/":
-                    raise RuntimeError("Expected '*/' after '/*' to close the comment")
-                cur_index += 2
-                continue
+                if next_char == "*":
+                    while cur_index < source_len and (source[cur_index : cur_index + 2] != "*/" or source[cur_index] in _WHITESPACES):
+                        if cur_char == "\n": cur_line += 1
+                        cur_index += 1
+
+                    if source[cur_index : cur_index + 2] != "*/":
+                        raise RuntimeError("Expected '*/' after '/*' to close the comment")
+                    cur_index += 2
+                    continue
+
+                if next_char == "/":
+                    while cur_index < source_len and source[cur_index] != "\n":
+                        cur_index += 1
+                    continue
 
             if cur_char in _ALPHA:
                 starting_index = cur_index
@@ -49,21 +57,31 @@ class Lexer:
                     else:
                         cur_type = TokenType.IDENTIFIER
 
-            elif cur_char in ("\'", "\""):
+            elif cur_char in ('"', "'"):
                 cur_index += 1
-                starting_index = cur_index
 
+                if source[cur_index] == cur_char and source[cur_index + 1] == cur_char:
+                    cur_char = cur_char * 3
+                    cur_index += 2
+
+                starting_index = cur_index
                 cur_index = source.find(cur_char, starting_index)
+
                 if cur_index == -1:
                     raise RuntimeError(f"Expected: ({cur_char}) at the end of the string")
 
-                cur_char = source[starting_index : cur_index]
+                string = source[starting_index : cur_index]
 
-                if "\n" in cur_char:
+                if "\n" in string and cur_char not in ('"""', "'''"):
                     raise RuntimeError("String should be written in one line")
 
+                if cur_char in ('"""', "'''"):
+                    cur_index += 3
+                else:
+                    cur_index += 1
+
                 cur_type = TokenType.STRING
-                cur_index += 1
+                cur_char = string
 
             elif cur_char in _DIGITS:
                 starting_index = cur_index
@@ -86,13 +104,15 @@ class Lexer:
                 cur_type = TokenType.INTEGER if decimal_point_count == 0 else TokenType.DOUBLE
 
             else:
-                if cur_char in ("+", "-", "*", "/") and source[cur_index + 1] == cur_char: # "++" | "--" | "**" | "//"
-                    cur_index += 1
-                    cur_char = cur_char + source[cur_index]
+                next_char = source[cur_index + 1]
 
-                if cur_char in ("=", "!", "<", ">", "+", "-", "*", "/", "**", "//") and source[cur_index + 1] == "=": # "==" | "!=" | "<=" | ">=" | "+=" | "-=" | "*=" | "/=" | "**=" | "//="
+                if cur_char in ("+", "-") and next_char == cur_char: # "++" | "--"
                     cur_index += 1
-                    cur_char = cur_char + source[cur_index]
+                    cur_char = cur_char + next_char
+
+                if cur_char in ("=", "!", "<", ">", "+", "-", "*", "/", "^") and next_char == "=": # "==" | "!=" | "<=" | ">=" | "+=" | "-=" | "*=" | "/=" | "^="
+                    cur_index += 1
+                    cur_char = cur_char + next_char
 
                 cur_type = types_dict.get(cur_char)
                 if cur_type is None:
