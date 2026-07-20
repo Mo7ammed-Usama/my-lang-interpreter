@@ -1,11 +1,13 @@
 from abc import ABC
 from dataclasses import dataclass
 from my_expr import Expr
-from my_token import TokenType
 
 
 class Stmt(ABC):
     __slots__ = ()
+
+    def __repr__(self):
+        pass
 
 # ============================= Expression Statement (Default statement) =============================
 @dataclass(slots=True)
