@@ -35,7 +35,8 @@ class OpCode(Enum):
 @dataclass(slots=True)
 class Instruction:
     op_code: OpCode
-    operand: object = None
+    argument: object = None
 
     def __repr__(self):
-        return f"{self.op_code.name} {self.operand}"
+        return f"{self.op_code.name} {f"({self.argument.__repr__()})" if self.argument is not None else ""}"
+

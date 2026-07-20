@@ -27,6 +27,10 @@ class Compiler:
         self.__constants : dict[object, int] = {}
         self.__function_signatures : dict[str, FunctionSignature] = {}
 
+        self.__cur_loop_break_jmp_addresses = []
+        self.__cur_loop_continue_jmp_addresses = []
+
+
     # ============= Main Compiling Method ==============
     def compile(self) -> tuple[Instruction, ...]:
         parse_tree = self.__parse_tree
@@ -38,7 +42,6 @@ class Compiler:
                 self.__var_declaration_stmt(node, self.__global_scope)
             elif isinstance(node, FuncDeclaration):
                 self.__func_declaration_stmt(node)
-
 
         self.__patch_jump(entry_jmp_address, len(self.__instructions))
 
@@ -55,7 +58,7 @@ class Compiler:
         return len(self.__instructions) - 1
 
     def __patch_jump(self, instruction_address: int, target_address: int):
-        self.__instructions[instruction_address].operand = target_address
+        self.__instructions[instruction_address].argument = target_address
 
     def __add_const(self, value) -> int:
         if value in self.__constants:
@@ -94,9 +97,9 @@ class Compiler:
         elif isinstance(node, ForStmt):
             self.__for_stmt(node, scope)
         elif isinstance(node, BreakStmt):
-            self.__break_stmt(node)
+            self.__break_stmt()
         elif isinstance(node, ContinueStmt):
-            self.__continue_stmt(node)
+            self.__continue_stmt()
 
         elif isinstance(node, ExprStmt):
             self.__expr_stmt(node, scope)
@@ -160,34 +163,14 @@ class Compiler:
         self.__emit(op_code, store_slot)
 
     def __if_stmt(self, node: IfStmt, scope):
-        stmt_starting_address = len(self.__instructions)
-
         self.__compile_node(node.condition, scope)
         condition_jmp_address = self.__emit(OpCode.JUMP_IF_FALSE)
 
-        jmp_instruction_address = None
-        jmp_instruction_name = None
-        for num, stmt in enumerate(node.block):
-            if isinstance(stmt, BreakStmt):
-                jmp_instruction_address = self.__emit(OpCode.JUMP)
-                jmp_instruction_name = "break"
-            elif isinstance(stmt, ContinueStmt):
-                jmp_instruction_address = self.__emit(OpCode.JUMP)
-                jmp_instruction_name = "continue"
-
+        for stmt in node.block:
             self.__compile_node(stmt, scope)
 
         stmt_end_address = len(self.__instructions)
         self.__patch_jump(condition_jmp_address, stmt_end_address)
-
-        if jmp_instruction_name is None or jmp_instruction_address is None:
-            return
-
-        if jmp_instruction_name == "break":
-            self.__patch_jump(jmp_instruction_address, stmt_end_address)
-        elif jmp_instruction_name == "continue":
-            self.__patch_jump(jmp_instruction_address, stmt_starting_address)
-
 
     def __while_stmt(self, node: WhileStmt, scope):
         stmt_starting_address = len(self.__instructions)
@@ -195,13 +178,7 @@ class Compiler:
         self.__compile_node(node.condition, scope)
         condition_jmp_address = self.__emit(OpCode.JUMP_IF_FALSE)
 
-        jmp_instructions_addresses = {}
-        for num, stmt in enumerate(node.block):
-            if isinstance(stmt, BreakStmt):
-                jmp_instructions_addresses[TokenType.BREAK] = self.__emit(OpCode.JUMP)
-            elif isinstance(stmt, ContinueStmt):
-                jmp_instructions_addresses[TokenType.CONTINUE] = self.__emit(OpCode.JUMP)
-
+        for stmt in node.block:
             self.__compile_node(stmt, scope)
 
         self.__emit(OpCode.JUMP, stmt_starting_address)
@@ -209,20 +186,19 @@ class Compiler:
         stmt_end_address = len(self.__instructions)
         self.__patch_jump(condition_jmp_address, stmt_end_address)
 
-        for instruction, instruction_address in jmp_instructions_addresses.items():
-            if instruction == TokenType.BREAK:
-                self.__patch_jump(instruction_address, stmt_end_address)
-            else:
-                self.__patch_jump(instruction_address, stmt_starting_address)
+        for instruction_address in self.__cur_loop_break_jmp_addresses:
+            self.__patch_jump(instruction_address, stmt_end_address)
+        for instruction_address in self.__cur_loop_continue_jmp_addresses:
+            self.__patch_jump(instruction_address, stmt_starting_address)
 
     def __for_stmt(self, node: ForStmt, scope):
         pass
 
-    def __break_stmt(self, node: BreakStmt):
-        return self.__emit(OpCode.JUMP)
+    def __break_stmt(self):
+        self.__cur_loop_break_jmp_addresses.append(self.__emit(OpCode.JUMP))
 
-    def __continue_stmt(self, node: ContinueStmt):
-        return self.__emit(OpCode.JUMP)
+    def __continue_stmt(self):
+        self.__cur_loop_continue_jmp_addresses.append(self.__emit(OpCode.JUMP))
 
 
     def __expr_stmt(self, node: ExprStmt, scope):
@@ -295,5 +271,8 @@ class Compiler:
 
         for name, signature in self.__function_signatures.items():
             info += f"func name({name}) : {signature}\n"
+
+        info += f"Current loop 'break' jump Address:\n{self.__cur_loop_break_jmp_addresses}\n"
+        info += f"Current loop 'continue' jump Address:\n{self.__cur_loop_continue_jmp_addresses}"
 
         return info
