@@ -188,13 +188,6 @@ class Parser:
         self.__consume(TokenType.OPEN_BRACE, "Expected ( '{' Open Brace ) to assign If Statement block")
         block = []
         while not self.__is_at_end() and not self.__check(TokenType.CLOSE_BRACE):
-            if self.__is_loop_block and self.__match(TokenType.BREAK):
-                block.append(self.__break_statement())
-                continue
-            if self.__is_loop_block and self.__match(TokenType.CONTINUE):
-                block.append(self.__continue_statement())
-                continue
-
             block.append(self.__parse_statement())
         self.__consume(TokenType.CLOSE_BRACE, "Expected ( '{' Close Brace ) to assign If Statement block")
 
@@ -202,7 +195,11 @@ class Parser:
 
     # ========= Loop Statements =========
     def __while_statement(self) -> Stmt:
-        self.__is_loop_block = True
+        if self.__is_loop_block:
+            is_nested_loop = True
+        else:
+            self.__is_loop_block = True
+            is_nested_loop = False
 
         self.__consume(TokenType.OPEN_PARENTHESES, "Expected ( '(' Open Parentheses ) to assign While Statement condition")
         condition = self.__expression()
@@ -214,7 +211,9 @@ class Parser:
             block.append(self.__parse_statement())
         self.__consume(TokenType.CLOSE_BRACE, "Expected ( '{' Close Brace ) to assign While Statement block")
 
-        self.__is_loop_block = False
+        if not is_nested_loop:
+            self.__is_loop_block = False
+
         return WhileStmt(condition, tuple(block))
 
     def __for_statement(self) -> Stmt:

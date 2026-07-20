@@ -5,9 +5,10 @@ from my_token import Token
 
 class Expr(ABC):
     __slots__ = ()
-    pass
+
     def __repr__(self):
         pass
+
 
 # ======================================== Binary Expression =========================================
 @dataclass(slots=True)
@@ -71,10 +72,5 @@ class Null(Literal):
 TOKEN_TO_EXPRESSION = {
     None
 }
-
-
-
-
-
 
 

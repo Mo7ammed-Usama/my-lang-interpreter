@@ -40,6 +40,12 @@ while (x >= 8) {
     if (x == 6) {
         continue;
     }
+    
+    while (x > 50) {
+        x++;
+        break;
+    }
+    
     if (y != x^2) {
         break;
     }
@@ -89,13 +95,14 @@ print("\n" + compiler.get_info())
 
 
 
-
-
 def hehe(sound, time, duration):
-    print(f"{sound}, {time}, {duration}")
+    def hello():
+        return sound
 
-def hello():
-    return "hello"
+    print(f"{hello()}, {time}, {duration}")
+
+
 
 x = 55
+
 

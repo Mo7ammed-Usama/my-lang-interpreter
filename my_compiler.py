@@ -17,19 +17,55 @@ class Scope:
     variables: dict[str, int]
     is_function_scope: bool = False
 
+@dataclass(slots=True)
+class LoopContext:
+    continue_jmp_target: int
+    break_jmp_addresses: list[int]
 
 class Compiler:
     def __init__(self, parse_tree: tuple[Stmt, ...]):
         self.__parse_tree = parse_tree
         self.__instructions: list[Instruction] = []
 
-        self.__global_scope = Scope({})
         self.__constants : dict[object, int] = {}
+        self.__global_scope = Scope({})
+        self.__loop_stack: list[LoopContext] = []
         self.__function_signatures : dict[str, FunctionSignature] = {}
 
-        self.__cur_loop_break_jmp_addresses = []
+        self.__loops_jmp_addresses = {}
         self.__cur_loop_continue_jmp_addresses = []
 
+        self.__node_to_method = {
+            # =========== Statements ============
+            FuncDeclaration : self.__func_declaration_stmt,
+            ReturnStmt : self.__return_stmt,
+
+            VarDeclaration : self.__var_declaration_stmt,
+            VarUpdate : self.__var_update_stmt,
+
+            IfStmt : self.__if_stmt,
+
+            WhileStmt : self.__while_stmt,
+            ForStmt : self.__for_stmt,
+            BreakStmt : self.__break_stmt,
+            ContinueStmt : self.__continue_stmt,
+
+            ExprStmt : self.__expr_stmt,
+            # ===================================
+
+            # =========== Expressions ===========
+            Binary : self.__binary_expr,
+            FuncCall : self.__func_call_expr,
+            VarReference : self.__var_reference_expr,
+            Unary : self.__unary_expr,
+
+            Integer : self.__literal_expr,
+            Double : self.__literal_expr,
+            String : self.__literal_expr,
+            Boolean : self.__literal_expr,
+            Null : self.__literal_expr
+            # ===================================
+        }
 
     # ============= Main Compiling Method ==============
     def compile(self) -> tuple[Instruction, ...]:
@@ -41,7 +77,7 @@ class Compiler:
             if isinstance(node, VarDeclaration):
                 self.__var_declaration_stmt(node, self.__global_scope)
             elif isinstance(node, FuncDeclaration):
-                self.__func_declaration_stmt(node)
+                self.__func_declaration_stmt(node, self.__global_scope)
 
         self.__patch_jump(entry_jmp_address, len(self.__instructions))
 
@@ -68,56 +104,16 @@ class Compiler:
         self.__constants[value] = slot
         return slot
 
-    def __compile_node(self, node: Stmt | Expr, scope):
-        if isinstance(node, Stmt):
-            self.__compile_stmt(node, scope)
+    def __compile_node(self, node: Stmt | Expr, scope: Scope):
+        method = self.__node_to_method.get(node.__class__)
 
-        elif isinstance(node, Expr):
-            self.__compile_expr(node, scope)
+        if method is None:
+            raise RuntimeError(f"Unexpected node: ( {node} )")
 
-        else:
-            raise RuntimeError(f"Unexpected node: {node}")
-
-    def __compile_stmt(self, node: Stmt, scope):
-        if isinstance(node, FuncDeclaration):
-            self.__func_declaration_stmt(node)
-        elif isinstance(node, ReturnStmt):
-            self.__return_stmt(node, scope)
-
-        elif isinstance(node, VarDeclaration):
-            self.__var_declaration_stmt(node, scope)
-        elif isinstance(node, VarUpdate):
-            self.__var_update_stmt(node, scope)
-
-        elif isinstance(node, IfStmt):
-            self.__if_stmt(node, scope)
-
-        elif isinstance(node, WhileStmt):
-            self.__while_stmt(node, scope)
-        elif isinstance(node, ForStmt):
-            self.__for_stmt(node, scope)
-        elif isinstance(node, BreakStmt):
-            self.__break_stmt()
-        elif isinstance(node, ContinueStmt):
-            self.__continue_stmt()
-
-        elif isinstance(node, ExprStmt):
-            self.__expr_stmt(node, scope)
-
-    def __compile_expr(self, node: Expr, scope):
-        if isinstance(node, Binary):
-            self.__binary_expr(node, scope)
-        elif isinstance(node, FuncCall):
-            self.__func_call_expr(node, scope)
-        elif isinstance(node, VarReference):
-            self.__var_reference_expr(node, scope)
-        elif isinstance(node, Unary):
-            self.__unary_expr(node, scope)
-        elif isinstance(node, Literal):
-            self.__literal_expr(node)
+        method(node, scope)
 
     # ============== Statements Compiling ==============
-    def __func_declaration_stmt(self, node: FuncDeclaration):
+    def __func_declaration_stmt(self, node: FuncDeclaration, scope: Scope):
         stmt_starting_address = len(self.__instructions)
         self.__function_signatures[node.name] = FunctionSignature(stmt_starting_address, node.param_names)
 
@@ -128,13 +124,12 @@ class Compiler:
         for stmt in node.block:
             self.__compile_node(stmt, local_scope)
 
-
-    def __return_stmt(self, node: ReturnStmt, scope):
+    def __return_stmt(self, node: ReturnStmt, scope: Scope):
         self.__compile_node(node.value, scope)
         self.__emit(OpCode.RETURN)
 
 
-    def __var_declaration_stmt(self, node: VarDeclaration, scope):
+    def __var_declaration_stmt(self, node: VarDeclaration, scope: Scope):
         if node.name in scope.variables:
             raise RuntimeError(f"Variable '{node.name}' is defined already, update it instead by typing 'var' before variable Identifier")
 
@@ -162,7 +157,8 @@ class Compiler:
         op_code = OpCode.STORE_LOCAL if cur_scope.is_function_scope else OpCode.STORE_GLOBAL
         self.__emit(op_code, store_slot)
 
-    def __if_stmt(self, node: IfStmt, scope):
+
+    def __if_stmt(self, node: IfStmt, scope: Scope):
         self.__compile_node(node.condition, scope)
         condition_jmp_address = self.__emit(OpCode.JUMP_IF_FALSE)
 
@@ -172,12 +168,15 @@ class Compiler:
         stmt_end_address = len(self.__instructions)
         self.__patch_jump(condition_jmp_address, stmt_end_address)
 
-    def __while_stmt(self, node: WhileStmt, scope):
+
+    def __while_stmt(self, node: WhileStmt, scope: Scope):
         stmt_starting_address = len(self.__instructions)
 
         self.__compile_node(node.condition, scope)
         condition_jmp_address = self.__emit(OpCode.JUMP_IF_FALSE)
 
+        context_index = len(self.__loop_stack)
+        self.__loop_stack.append(LoopContext(stmt_starting_address, []))
         for stmt in node.block:
             self.__compile_node(stmt, scope)
 
@@ -186,26 +185,24 @@ class Compiler:
         stmt_end_address = len(self.__instructions)
         self.__patch_jump(condition_jmp_address, stmt_end_address)
 
-        for instruction_address in self.__cur_loop_break_jmp_addresses:
-            self.__patch_jump(instruction_address, stmt_end_address)
-        for instruction_address in self.__cur_loop_continue_jmp_addresses:
-            self.__patch_jump(instruction_address, stmt_starting_address)
+        for break_jmp_instruction_address in self.__loop_stack[context_index].break_jmp_addresses:
+            self.__patch_jump(break_jmp_instruction_address, stmt_end_address)
 
-    def __for_stmt(self, node: ForStmt, scope):
+    def __for_stmt(self, node: ForStmt, scope: Scope):
         pass
 
-    def __break_stmt(self):
-        self.__cur_loop_break_jmp_addresses.append(self.__emit(OpCode.JUMP))
+    def __break_stmt(self, node, scope):
+        self.__loop_stack[-1].break_jmp_addresses.append(self.__emit(OpCode.JUMP))
 
-    def __continue_stmt(self):
-        self.__cur_loop_continue_jmp_addresses.append(self.__emit(OpCode.JUMP))
+    def __continue_stmt(self, node, scope):
+        self.__emit(OpCode.JUMP, self.__loop_stack[-1].continue_jmp_target)
 
 
-    def __expr_stmt(self, node: ExprStmt, scope):
+    def __expr_stmt(self, node: ExprStmt, scope: Scope):
         self.__compile_node(node.expression, scope)
 
     # ============= Expressions Compiling ==============
-    def __binary_expr(self, node: Binary, scope):
+    def __binary_expr(self, node: Binary, scope: Scope):
         self.__compile_node(node.left, scope)
         self.__compile_node(node.right, scope)
         if node.operator.type not in ARITHMETIC_TOKENS:
@@ -215,7 +212,7 @@ class Compiler:
 
         self.__emit(op_code, node.operator.type)
 
-    def __func_call_expr(self, node: FuncCall, scope):
+    def __func_call_expr(self, node: FuncCall, scope: Scope):
         if node.name not in self.__function_signatures:
             raise RuntimeError(f"Calling an undefined function '{node.name}'")
         signature = self.__function_signatures[node.name]
@@ -230,7 +227,7 @@ class Compiler:
 
         self.__emit(OpCode.CALL, node.name)
 
-    def __var_reference_expr(self, node: VarReference, scope):
+    def __var_reference_expr(self, node: VarReference, scope: Scope):
         if node.name in scope.variables:
             cur_scope = scope
         elif node.name in self.__global_scope.variables:
@@ -244,18 +241,18 @@ class Compiler:
         op_code = OpCode.LOAD_LOCAL if cur_scope.is_function_scope else OpCode.LOAD_GLOBAL
         self.__emit(op_code, load_slot)
 
-    def __unary_expr(self, node: Unary, scope):
+    def __unary_expr(self, node: Unary, scope: Scope):
         self.__compile_node(node.operand, scope)
         self.__emit(OpCode.UNARY_OP, node.operator.type)
 
-    def __literal_expr(self, node: Literal):
+    def __literal_expr(self, node: Literal, scope: Scope):
         if isinstance(node, Null):
             self.__emit(OpCode.LOAD_NULL)
         else:
             address = self.__add_const(node.value)
             self.__emit(OpCode.LOAD_CONST, address)
 
-
+    # ================ Utility Methods =================
     def get_info(self):
         info = "Constants:\n"
 
@@ -272,7 +269,5 @@ class Compiler:
         for name, signature in self.__function_signatures.items():
             info += f"func name({name}) : {signature}\n"
 
-        info += f"Current loop 'break' jump Address:\n{self.__cur_loop_break_jmp_addresses}\n"
-        info += f"Current loop 'continue' jump Address:\n{self.__cur_loop_continue_jmp_addresses}"
-
         return info
+
