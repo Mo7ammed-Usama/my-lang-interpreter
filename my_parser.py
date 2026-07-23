@@ -93,6 +93,9 @@ class Parser:
         return self.__parse_statement()
 
     def __parse_statement(self) -> Stmt:
+        if self.__match(TokenType.FUNC):
+            return self.__func_declaration()
+
         if self.__match(TokenType.VAR):
             return self.__var_declaration()
         if self.__check(TokenType.IDENTIFIER) and self.__peek(1).type in ASSIGNING_TOKENS:
@@ -137,11 +140,13 @@ class Parser:
         block = []
         while not self.__is_at_end() and not self.__match(TokenType.CLOSE_BRACE):
             block.append(self.__parse_statement())
+            self.__is_function_block = True
 
-        if ReturnStmt not in block:
-            block.append(ReturnStmt(Null(None)))
+        if any(isinstance(stmt, ReturnStmt) for stmt in block):
+            self.__is_function_block = False
+            return FuncDeclaration(name, tuple(parameters_names), tuple(block))
 
-        self.__is_function_block = False
+        block.append(ReturnStmt(Null(None)))
         return FuncDeclaration(name, tuple(parameters_names), tuple(block))
 
     def __return_statement(self) -> Stmt:
