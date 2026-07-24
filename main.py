@@ -85,16 +85,6 @@ hello, how are you""";
 
 var opp = -(-add(2, 3));
 
-func tetration(a, b) {
-    var result = 1;
-    
-    while (b > 0) {
-        result = a^result;
-        b--;
-    }
-    
-    return result;
-}
 
 func recursiveMul(a, b) {
     if (b <= 0) {
@@ -117,46 +107,101 @@ log(3 + 4);
 log(reMulti + tetra);
 */
 
-func calculator(firstNum, secondNum, operator) {  
-    var result = 0;
+
+func tetration(a, b) {
+    var result = 1;
     
-    if (operator == "+") {
-        result = firstNum + secondNum;
-    }
-    
-    if (operator == "-") {
-        result = firstNum - secondNum;
-    }
-    
-    if (operator == "*") {
-        result = firstNum * secondNum;
-    }
-    
-    if (operator == "/") {
-        if (Integer(secondNum) == 0) {
-            log("Cannot divide by 0, enter another number");
-            return Null;
-        }
-        result = firstNum / secondNum;
+    while (b > 0) {
+        result = a ^ result;
+        b--;
     }
     
     return result;
 }
 
 func main() {
-    while (True) {
+    var status = True;
+    
+    while (status) {
         var firstNum = Integer(input("Enter 1st number: "));
-        var operator = input("Enter the operator: ");
-        var secondNum = Integer(input("Enter 2nd number: "));
         
-        var result = calculator(firstNum, secondNum, operator);
-        
-        if (result != Null) {
+        while (True) {
+            var operator = input("Enter the operator: ");
+            
+            if (operator != "+") {
+                if (operator != "-") {
+                    if (operator != "*") {
+                        if (operator != "/") {
+                            if (operator != "**") {
+                                if (operator != "tetration") {
+                                    log("Invalid operator, please enter another valid operator ( + | - | * | / )");
+                                    continue;
+                                }
+                                break;
+                            }
+                            break;
+                        }   
+                        break;
+                    }
+                    break;
+                }
+                break;
+            }
             break;
         }
+        
+        var secondNum = Integer(input("Enter 2nd number: "));
+        
+        var result = Null;
+        
+        if (operator == "+") {
+            result = firstNum + secondNum;
+        }
+        if (operator == "-") {
+            result = firstNum - secondNum;
+        }
+        if (operator == "*") {
+            result = firstNum * secondNum;
+        }
+        if (operator == "/") {
+            if (secondNum == 0) {
+                log("Cannot divide by 0, enter another number");
+                continue;
+            }
+            result = firstNum / secondNum;
+        }
+        if (operator == "**") {
+            result = firstNum ^ secondNum;
+        }
+        if (operator == "tetration") {
+            result = tetration(firstNum, secondNum);
+        }
+        
+        
+        if (result == Null) {
+            continue;
+        }
+        
+        log(result);
+                
+        while (True) {
+            var choice = input("do you want to perform another operation ? (Y/N): ");
+            
+            if (choice == "Y") {
+                break;
+            }
+            if (choice == "N") {
+                status = False;
+                break;
+            }
+            if (choice != "Y") {
+                if (choice != "N") {
+                    log("Invalid choice, please enter (Y/N) letters only");       
+                }
+            }
+        }
     }
-    
-    log(result);
+
 }
 
 main();
