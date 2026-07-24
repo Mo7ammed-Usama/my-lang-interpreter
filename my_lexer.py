@@ -3,7 +3,7 @@ from string import ascii_letters, digits
 
 _ALPHA = frozenset(ascii_letters)
 _DIGITS = frozenset(digits)
-_WHITESPACES = frozenset(" \t\v\n\r")
+_WHITESPACES = frozenset(" \t\v\n\r\f")
 
 class Lexer:
     def __init__(self, source: str):

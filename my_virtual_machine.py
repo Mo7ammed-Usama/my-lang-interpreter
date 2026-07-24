@@ -68,7 +68,7 @@ class VirtualMachine:
         if method is None:
             raise RuntimeError(f"Unexpected Instruction: {instruction}")
 
-        method(argument=instruction.argument,)
+        method(argument=instruction.argument)
         self.__log(f"current stack: {self.__stack}\n")
 
         if self.__program_counter != program_counter_now:
@@ -200,13 +200,18 @@ class VirtualMachine:
                 raise RuntimeError(f"Invalid operator '{operator}' with type: ")
 
     def __call(self, argument: tuple):
-        starting_address, arity, local_slots_count = argument
+        starting_address, arity, local_slots_count, native_impl = argument
 
-        frame = Frame(local_slots_count, self.__program_counter + 1)
 
         args = []
         for num in range(arity):
             args.append(self.__pop())
+
+        if native_impl is not None:
+            self.__push(native_impl(*args))
+            return
+
+        frame = Frame(local_slots_count, self.__program_counter + 1)
 
         frame.locals[0 : arity] = reversed(args)
         self.__push_frame(frame)
@@ -268,3 +273,7 @@ class VirtualMachine:
         if not self.__enable_tracing:
             return
         print(msg)
+
+
+
+
