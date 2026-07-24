@@ -240,7 +240,7 @@ class Parser:
     def __expression(self) -> Expr:
         working_expr = self.__comparison()
 
-        if self.__match(TokenType.EQUAL, TokenType.NOT_EQUAL):
+        while self.__match(TokenType.EQUAL, TokenType.NOT_EQUAL):
             operator = self.__peek(-1)
             parsed_expression = self.__comparison()
 
@@ -251,7 +251,7 @@ class Parser:
     def __comparison(self) -> Expr:
         working_expr = self.__term()
 
-        if self.__match(TokenType.LESS_THAN, TokenType.GREATER_THAN, TokenType.LESS_THAN_EQUAL, TokenType.GREATER_THAN_EQUAL):
+        while self.__match(TokenType.LESS_THAN, TokenType.GREATER_THAN, TokenType.LESS_THAN_EQUAL, TokenType.GREATER_THAN_EQUAL):
             operator = self.__peek(-1)
             parsed_expression = self.__term()
 
@@ -262,7 +262,7 @@ class Parser:
     def __term(self) -> Expr:
         working_expr = self.__factor()
 
-        if self.__match(TokenType.PLUS, TokenType.MINUS):
+        while self.__match(TokenType.PLUS, TokenType.MINUS):
             operator = self.__peek(-1)
             parsed_expression = self.__factor()
 
@@ -273,7 +273,7 @@ class Parser:
     def __factor(self) -> Expr:
         working_expr = self.__exponent()
 
-        if self.__match(TokenType.MULTIPLY, TokenType.DIVIDE):
+        while self.__match(TokenType.MULTIPLY, TokenType.DIVIDE):
             operator = self.__peek(-1)
             parsed_term = self.__exponent()
 
@@ -284,7 +284,7 @@ class Parser:
     def __exponent(self) -> Expr:
         working_expr = self.__unary()
 
-        if self.__match(TokenType.EXPONENT):
+        while self.__match(TokenType.EXPONENT):
             operator = self.__peek(-1)
             parsed_expression = self.__unary()
 
@@ -293,12 +293,12 @@ class Parser:
         return working_expr
 
     def __unary(self) -> Expr:
-        if self.__match(TokenType.MINUS):
+        while self.__match(TokenType.MINUS):
             operator = self.__peek(-1)
             working_expr = self.__unary()
             return Unary(working_expr, operator)
 
-        if self.__match(TokenType.PLUS):
+        while self.__match(TokenType.PLUS):
             working_expr = self.__unary()
             return working_expr
 

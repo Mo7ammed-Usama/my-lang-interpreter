@@ -1,17 +1,14 @@
+from my_builtins import builtins, FunctionSignature
 from my_instruction import *
 from my_instruction import Instruction
 from my_statement import *
 from my_expr import *
-from dataclasses import dataclass
 
 from my_token import ARITHMETIC_TOKENS
 
+from dataclasses import dataclass
 
-@dataclass(slots=True)
-class FunctionSignature:
-    starting_address: int
-    param_names: tuple[str, ...]
-    local_slots_count: int
+
 
 @dataclass(slots=True)
 class Scope:
@@ -23,6 +20,7 @@ class Scope:
 class LoopContext:
     continue_jmp_target: int
     break_jmp_addresses: list[int]
+
 
 class Compiler:
     def __init__(self, parse_tree: tuple[Stmt, ...]):
@@ -69,6 +67,8 @@ class Compiler:
     # ============= Main Compiling Method ==============
     def compile(self) -> tuple[Instruction, ...]:
         parse_tree = self.__parse_tree
+
+        self.__function_signatures.update(builtins)
 
         entry_jmp_address = self.__emit(OpCode.JUMP, ())
 
@@ -158,20 +158,30 @@ class Compiler:
     # ============== Statements Compiling ==============
     def __func_declaration_stmt(self, node: FuncDeclaration, scope_index: int):
         cur_scope = self.__scopes_stack[scope_index]
+        is_nested_function = True if cur_scope.is_function_scope else False
 
         stmt_starting_address = len(self.__instructions)
 
         local_scope_index = len(self.__scopes_stack)
-        self.__scopes_stack.append(Scope({}, True, True if cur_scope.is_function_scope else False))
+        self.__scopes_stack.append(Scope({}, True, is_nested_function))
         local_scope = self.__scopes_stack[-1]
 
         for param in node.param_names:
             local_scope.variables[param] = (len(local_scope.variables), None)
 
+        func_block_skip_jmp_address = -1
+        if is_nested_function:
+            func_block_skip_jmp_address = self.__emit(OpCode.JUMP, ())
+            stmt_starting_address += 1
+
+        self.__function_signatures[node.name] = FunctionSignature(stmt_starting_address, node.param_names, -1, None)
+
         for stmt in node.block:
             self.__compile_node(stmt, local_scope_index)
+        if is_nested_function:
+            self.__patch_jump(func_block_skip_jmp_address, len(self.__instructions))
 
-        self.__function_signatures[node.name] = FunctionSignature(stmt_starting_address, node.param_names, len(local_scope.variables))
+        self.__function_signatures[node.name].local_slots_count = len(local_scope.variables)
 
     def __return_stmt(self, node: ReturnStmt, scope_index: int):
         self.__compile_node(node.value, scope_index)
@@ -277,7 +287,7 @@ class Compiler:
         for expr in node.args:
             self.__compile_node(expr, scope_index)
 
-        self.__emit(OpCode.CALL, (signature.starting_address, args_len, signature.local_slots_count))
+        self.__emit(OpCode.CALL, (signature.starting_address, args_len, signature.local_slots_count, signature.native_impl))
 
     def __var_reference_expr(self, node: VarReference, scope_index: int):
         depth = self.__resolve_variable(node.name, scope_index)
@@ -327,4 +337,5 @@ class Compiler:
             info += f"\t[{context_num}] {loop_context}\n"
 
         return info
+
 
