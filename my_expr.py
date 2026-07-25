@@ -74,3 +74,5 @@ TOKEN_TO_EXPRESSION = {
 }
 
 
+if __name__ == '__main__':
+    pass

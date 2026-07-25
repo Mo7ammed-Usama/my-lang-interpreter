@@ -14,6 +14,8 @@ class Stmt(ABC):
 @dataclass(slots=True)
 class ExprStmt(Stmt):
     expression: Expr
+
+
 # ====================================================================================================
 
 
@@ -28,6 +30,8 @@ class VarDeclaration(Stmt):
 class VarUpdate(Stmt):
     name: str
     new_value: Expr
+
+
 # ====================================================================================================
 
 
@@ -36,6 +40,8 @@ class VarUpdate(Stmt):
 class IfStmt(Stmt):
     condition: Expr
     block: tuple[Stmt, ...]
+
+
 # ====================================================================================================
 
 
@@ -60,6 +66,8 @@ class BreakStmt(Stmt):
 @dataclass(slots=True)
 class ContinueStmt(Stmt):
     pass
+
+
 # ====================================================================================================
 
 
@@ -74,7 +82,10 @@ class FuncDeclaration(Stmt):
 @dataclass(slots=True)
 class ReturnStmt(Stmt):
     value: Expr
+
+
 # ====================================================================================================
 
 
-
+if __name__ == '__main__':
+    pass

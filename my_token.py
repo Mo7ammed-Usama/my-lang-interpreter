@@ -92,3 +92,7 @@ ARITHMETIC_TOKENS = (
     TokenType.DIVIDE,
     TokenType.EXPONENT
 )
+
+
+if __name__ == '__main__':
+    pass
