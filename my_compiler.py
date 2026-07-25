@@ -280,8 +280,8 @@ class Compiler:
         signature = self.__function_signatures[node.name]
 
         args_len = len(node.args)
-        param_names_len = len(signature.param_names)
-        if args_len != param_names_len:
+        param_names_len = len(signature.param_names) if signature.param_names is not None else None
+        if param_names_len is not None and args_len != param_names_len:
             raise RuntimeError(f"Expected ({param_names_len}) arguments for '{node.name}' Function , got ({args_len})")
 
         for expr in node.args:
@@ -339,3 +339,5 @@ class Compiler:
         return info
 
 
+if __name__ == '__main__':
+    pass

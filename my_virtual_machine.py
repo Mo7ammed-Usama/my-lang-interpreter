@@ -202,10 +202,7 @@ class VirtualMachine:
     def __call(self, argument: tuple):
         starting_address, arity, local_slots_count, native_impl = argument
 
-
-        args = []
-        for num in range(arity):
-            args.append(self.__pop())
+        args = [self.__pop() for num in range(arity)].__reversed__()
 
         if native_impl is not None:
             self.__push(native_impl(*args))
@@ -213,7 +210,7 @@ class VirtualMachine:
 
         frame = Frame(local_slots_count, self.__program_counter + 1)
 
-        frame.locals[0 : arity] = reversed(args)
+        frame.locals[0 : arity] = args
         self.__push_frame(frame)
 
         self.__program_counter = starting_address
@@ -277,3 +274,5 @@ class VirtualMachine:
 
 
 
+if __name__ == '__main__':
+    pass

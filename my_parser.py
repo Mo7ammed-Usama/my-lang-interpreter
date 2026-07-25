@@ -188,7 +188,8 @@ class Parser:
     def __if_statement(self) -> Stmt:
         self.__consume(TokenType.OPEN_PARENTHESES, "Expected ( '(' Open Parentheses ) to assign If Statement condition")
         condition = self.__expression()
-        self.__consume(TokenType.CLOSE_PARENTHESES,"Expected ( ')' Close Parentheses ) after ( '(' Open Parentheses ) in If Statement condition")
+        self.__consume(TokenType.CLOSE_PARENTHESES,
+                       "Expected ( ')' Close Parentheses ) after ( '(' Open Parentheses ) in If Statement condition")
 
         self.__consume(TokenType.OPEN_BRACE, "Expected ( '{' Open Brace ) to assign If Statement block")
         block = []
@@ -206,9 +207,11 @@ class Parser:
             self.__is_loop_block = True
             is_nested_loop = False
 
-        self.__consume(TokenType.OPEN_PARENTHESES, "Expected ( '(' Open Parentheses ) to assign While Statement condition")
+        self.__consume(TokenType.OPEN_PARENTHESES,
+                       "Expected ( '(' Open Parentheses ) to assign While Statement condition")
         condition = self.__expression()
-        self.__consume(TokenType.CLOSE_PARENTHESES,"Expected ( ')' Close Parentheses ) after ( '(' Open Parentheses ) in While Statement condition")
+        self.__consume(TokenType.CLOSE_PARENTHESES,
+                       "Expected ( ')' Close Parentheses ) after ( '(' Open Parentheses ) in While Statement condition")
 
         self.__consume(TokenType.OPEN_BRACE, "Expected ( '{' Open Brace ) to assign While Statement block")
         block = []
@@ -251,7 +254,8 @@ class Parser:
     def __comparison(self) -> Expr:
         working_expr = self.__term()
 
-        while self.__match(TokenType.LESS_THAN, TokenType.GREATER_THAN, TokenType.LESS_THAN_EQUAL, TokenType.GREATER_THAN_EQUAL):
+        while self.__match(TokenType.LESS_THAN, TokenType.GREATER_THAN, TokenType.LESS_THAN_EQUAL,
+                           TokenType.GREATER_THAN_EQUAL):
             operator = self.__peek(-1)
             parsed_expression = self.__term()
 
@@ -311,7 +315,8 @@ class Parser:
         # '(' Expression ')'
         if self.__match(TokenType.OPEN_PARENTHESES):
             expression = self.__expression()
-            self.__consume(TokenType.CLOSE_PARENTHESES, "Expected ( ')' Close Parentheses ) after the ( '(' Open Parentheses ) to terminate the expression")
+            self.__consume(TokenType.CLOSE_PARENTHESES,
+                           "Expected ( ')' Close Parentheses ) after the ( '(' Open Parentheses ) to terminate the expression")
             return expression
 
         # Identifier
@@ -381,3 +386,6 @@ class Parser:
         if self.__enable_log:
             print(msg)
 
+
+if __name__ == '__main__':
+    pass

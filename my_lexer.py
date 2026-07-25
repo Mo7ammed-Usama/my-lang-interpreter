@@ -5,6 +5,7 @@ _ALPHA = frozenset(ascii_letters)
 _DIGITS = frozenset(digits)
 _WHITESPACES = frozenset(" \t\v\n\r\f")
 
+
 class Lexer:
     def __init__(self, source: str):
         self.__source = source
@@ -30,11 +31,12 @@ class Lexer:
                 next_char = source[cur_index + 1]
 
                 if next_char == "*":
-                    while cur_index < source_len and (source[cur_index : cur_index + 2] != "*/" or source[cur_index] in _WHITESPACES):
+                    while cur_index < source_len and (
+                            source[cur_index: cur_index + 2] != "*/" or source[cur_index] in _WHITESPACES):
                         if cur_char == "\n": cur_line += 1
                         cur_index += 1
 
-                    if source[cur_index : cur_index + 2] != "*/":
+                    if source[cur_index: cur_index + 2] != "*/":
                         raise RuntimeError("Expected '*/' after '/*' to close the comment")
                     cur_index += 2
                     continue
@@ -70,7 +72,7 @@ class Lexer:
                 if cur_index == -1:
                     raise RuntimeError(f"Expected: ({cur_char}) at the end of the string")
 
-                string = source[starting_index : cur_index]
+                string = source[starting_index: cur_index]
 
                 if "\n" in string and cur_char not in ('"""', "'''"):
                     raise RuntimeError("String should be written in one line")
@@ -95,10 +97,12 @@ class Lexer:
                     cur_index = self.__advance_while_in(source, source_len, _DIGITS, cur_index)
 
                 if decimal_point_count > 1:
-                    raise RuntimeError(f"Expected 1 decimal point '.' in the Double Number, got ({decimal_point_count})")
+                    raise RuntimeError(
+                        f"Expected 1 decimal point '.' in the Double Number, got ({decimal_point_count})")
 
                 elif source[cur_index - 1] == ".":
-                    raise RuntimeError(f"Expected a number after the decimal point '.', At: line ({cur_line}), index ({cur_index})")
+                    raise RuntimeError(
+                        f"Expected a number after the decimal point '.', At: line ({cur_line}), index ({cur_index})")
 
                 cur_char = source[starting_index: cur_index]
                 cur_type = TokenType.INTEGER if decimal_point_count == 0 else TokenType.DOUBLE
@@ -106,11 +110,12 @@ class Lexer:
             else:
                 next_char = source[cur_index + 1]
 
-                if cur_char in ("+", "-") and next_char == cur_char: # "++" | "--"
+                if cur_char in ("+", "-") and next_char == cur_char:  # "++" | "--"
                     cur_index += 1
                     cur_char = cur_char + next_char
 
-                if cur_char in ("=", "!", "<", ">", "+", "-", "*", "/", "^") and next_char == "=": # "==" | "!=" | "<=" | ">=" | "+=" | "-=" | "*=" | "/=" | "^="
+                if cur_char in ("=", "!", "<", ">", "+", "-", "*", "/",
+                                "^") and next_char == "=":  # "==" | "!=" | "<=" | ">=" | "+=" | "-=" | "*=" | "/=" | "^="
                     cur_index += 1
                     cur_char = cur_char + next_char
 
@@ -132,3 +137,6 @@ class Lexer:
             cur_index += 1
         return cur_index
 
+
+if __name__ == '__main__':
+    pass

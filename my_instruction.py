@@ -30,6 +30,7 @@ class OpCode(Enum):
     def __repr__(self) -> str:
         return f"{self.name}"
 
+
 @dataclass(slots=True)
 class Instruction:
     op_code: OpCode
@@ -55,3 +56,6 @@ class Instruction:
 
         return instruction_repr
 
+
+if __name__ == '__main__':
+    pass
